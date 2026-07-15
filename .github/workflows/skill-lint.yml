@@ -1,0 +1,30 @@
+name: skill-lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check SKILL.md presence
+        run: |
+          set -euo pipefail
+          rc=0
+          while IFS= read -r d; do
+            if [ ! -f "$d/SKILL.md" ]; then
+              echo "::error::$d/SKILL.md missing"
+              rc=1
+            fi
+          done < <(find skills -mindepth 1 -maxdepth 1 -type d | sort)
+          exit $rc
+      - name: Secret scan (trivial)
+        run: |
+          set -euo pipefail
+          if grep -R -nE 'shpat_|shpca_|shpss_|ghp_|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' skills .github || true; then
+            echo "::warning::Potential secret patterns detected; review before merge"
+          fi
